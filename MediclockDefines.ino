@@ -43,6 +43,12 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 #define CLR_LCD           lcd.clear()
 #define LCD_PRINT(X)      lcd.print(X)
 
+#define APAGAR_LED        digitalWrite(LED, LOW)
+#define ENCENDER_LED      digitalWrite(LED, HIGH)
+#define BTN_BAJAR         digitalRead(BTN_BAJAR) == LOW
+#define BTN_CONFIRMAR     digitalRead(BTN_CONFIRMAR) == LOW
+#define BTN_SUBIR         digitalRead(BTN_SUBIR) == LOW
+
 // ----- Variables globales -----
 const char* dias[] = {"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"};
 
@@ -57,9 +63,9 @@ bool alarmaActiva = false;
 
 // ----- Funciones -----
 void leerBotones() {
-  bajar = digitalRead(BTN_BAJAR) == LOW;
-  confirmar = digitalRead(BTN_CONFIRMAR) == LOW;
-  subir = digitalRead(BTN_SUBIR) == LOW;
+  bajar = BTN_BAJAR;
+  confirmar = BTN_CONFIRMAR;
+  subir = BTN_SUBIR;
 }
 
 void mostrarHora() {
@@ -112,14 +118,14 @@ void mostrarMenuMinuto() {
 void activarAlarma() {
   lcd.clear();
   lcd.print("!ALARMA!");
-  digitalWrite(LED, HIGH);
+  ENCENDER_LED;
   tone(BUZZER, 1000);
   alarmaActiva = true;
 }
 
 void detenerAlarma() {
   noTone(BUZZER);
-  digitalWrite(LED, LOW);
+  APAGAR_LED;
   motor.step(273); // Gira al confirmar
   alarmaActiva = false;
   lcd.clear();
