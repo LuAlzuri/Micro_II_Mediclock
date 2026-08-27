@@ -20,22 +20,22 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 ThreeWire myWire(7, 6, 8); // DAT, CLK, RST
 RtcDS1302<ThreeWire> Rtc(myWire);
 
-// ----- Botones -----
-#define BTN_BAJAR 2
-#define BTN_CONFIRMAR 3
-#define BTN_SUBIR 4
+// ----- Pines de los Botones (NÚMEROS DE PIN) -----
+#define PIN_BTN_BAJAR     2
+#define PIN_BTN_CONFIRMAR 3
+#define PIN_BTN_SUBIR     4
 
 // ----- LED y buzzer -----
 #define LED 9
 #define BUZZER 5
 
-//configuraciones
+// Configuración de Hardware
 #define LCD_INIT          lcd.init()
 #define LCD_BACKLIGHT     lcd.backlight()
 #define INIT_SERIAL       Serial.begin(9600)
-#define CFG_BTN_BAJAR     pinMode(BTN_BAJAR, INPUT_PULLUP)
-#define CFG_BTN_CONFIRMAR pinMode(BTN_CONFIRMAR, INPUT_PULLUP)
-#define CFG_BTN_SUBIR     pinMode(BTN_SUBIR, INPUT_PULLUP)
+#define CFG_BTN_BAJAR     pinMode(PIN_BTN_BAJAR, INPUT_PULLUP)
+#define CFG_BTN_CONFIRMAR pinMode(PIN_BTN_CONFIRMAR, INPUT_PULLUP)
+#define CFG_BTN_SUBIR     pinMode(PIN_BTN_SUBIR, INPUT_PULLUP)
 #define CFG_LED           pinMode(LED, OUTPUT)
 #define CFG_BUZZER        pinMode(BUZZER, OUTPUT)
 #define CFG_MOTOR         motor.setSpeed(10)
@@ -43,16 +43,19 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 #define CLR_LCD           lcd.clear()
 #define LCD_PRINT(X)      lcd.print(X)
 
+// Acciones y Lecturas
 #define APAGAR_LED        digitalWrite(LED, LOW)
 #define ENCENDER_LED      digitalWrite(LED, HIGH)
-#define BTN_BAJAR         digitalRead(BTN_BAJAR) == LOW
-#define BTN_CONFIRMAR     digitalRead(BTN_CONFIRMAR) == LOW
-#define BTN_SUBIR         digitalRead(BTN_SUBIR) == LOW
+
+// Cambiamos el nombre aquí para evitar el solapamiento:
+#define LEER_BTN_BAJAR     (digitalRead(PIN_BTN_BAJAR) == LOW)
+#define LEER_BTN_CONFIRMAR (digitalRead(PIN_BTN_CONFIRMAR) == LOW)
+#define LEER_BTN_SUBIR     (digitalRead(PIN_BTN_SUBIR) == LOW)
 
 // ----- Variables globales -----
 const char* dias[] = {"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"};
 
-int estado = 0; // 0: reloj, 1: seleccionar día, 2: seleccionar alarma, 3: hora, 4: minuto
+int estado = 0;
 int diaSeleccionado = 0;
 int alarmaSeleccionada = 0;
 int horaSeleccionada = 0;
