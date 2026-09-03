@@ -29,6 +29,9 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 #define LED 9
 #define BUZZER 5
 
+// ----- Tamaño de la EEPROM emulada (ESP32) -----
+#define EEPROM_SIZE 512
+
 // Configuración de Hardware
 #define LCD_INIT          lcd.init()
 #define LCD_BACKLIGHT     lcd.backlight()
@@ -47,7 +50,6 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 #define APAGAR_LED        digitalWrite(LED, LOW)
 #define ENCENDER_LED      digitalWrite(LED, HIGH)
 
-// Cambiamos el nombre aquí para evitar el solapamiento:
 #define LEER_BTN_BAJAR     (digitalRead(PIN_BTN_BAJAR) == LOW)
 #define LEER_BTN_CONFIRMAR (digitalRead(PIN_BTN_CONFIRMAR) == LOW)
 #define LEER_BTN_SUBIR     (digitalRead(PIN_BTN_SUBIR) == LOW)
@@ -66,9 +68,9 @@ bool alarmaActiva = false;
 
 // ----- Funciones -----
 void leerBotones() {
-  bajar = BTN_BAJAR;
-  confirmar = BTN_CONFIRMAR;
-  subir = BTN_SUBIR;
+  bajar = LEER_BTN_BAJAR;
+  confirmar = LEER_BTN_CONFIRMAR;
+  subir = LEER_BTN_SUBIR;
 }
 
 void mostrarHora() {
@@ -137,10 +139,17 @@ void detenerAlarma() {
   lcd.clear();
 }
 
+// ----- EEPROM: en ESP32 no existe update(), y hay que hacer commit() -----
 void guardarAlarma(int dia, int numAlarma, int hora, int minuto) {
   int addr = (dia * 6) + (numAlarma * 2);
-  EEPROM.update(addr, hora);
-  EEPROM.update(addr + 1, minuto);
+
+  if (EEPROM.read(addr) != hora) {
+    EEPROM.write(addr, hora);
+  }
+  if (EEPROM.read(addr + 1) != minuto) {
+    EEPROM.write(addr + 1, minuto);
+  }
+  EEPROM.commit(); // imprescindible en ESP32, si no se pierde al reiniciar
 }
 
 void verificarAlarmas() {
@@ -174,6 +183,8 @@ void setup() {
 
   CFG_MOTOR;
   CFG_RTC;
+
+  EEPROM.begin(EEPROM_SIZE); // requerido en ESP32 antes de leer/escribir
 
   CLR_LCD;
   LCD_PRINT("Sistema iniciado");
