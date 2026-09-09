@@ -1,3 +1,9 @@
+/*
+* LiquidCrystal\_I2C by Martin Kubovcik, Frank de Brabander
+* Rtc by Makuna by Michael C. Miller
+
+ */
+//Sincronizado 08/09/26 --> PC Profe
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <ThreeWire.h>
