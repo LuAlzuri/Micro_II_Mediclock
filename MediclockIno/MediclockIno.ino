@@ -3,9 +3,10 @@
 * Rtc by Makuna by Michael C. Miller
 
  */
+// TAREAS:
+// ELIMINAR LOS DELAY DEL PROYECTO (10/9/26)
+// Despejar el bucle principal
 
- // ELIMINAR LOS DELAY DEL PROYECTO (10/9/26)
-//Sincronizado 08/09/26 --> PC Profe
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <ThreeWire.h>
