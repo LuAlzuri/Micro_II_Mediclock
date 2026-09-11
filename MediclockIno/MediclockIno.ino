@@ -3,6 +3,8 @@
 * Rtc by Makuna by Michael C. Miller
 
  */
+
+ // ELIMINAR LOS DELAY DEL PROYECTO (10/9/26)
 //Sincronizado 08/09/26 --> PC Profe
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -206,7 +208,7 @@ void loop() {
   if (alarmaActiva) {
     if (confirmar) {
       detenerAlarma();
-      delay(300);
+      delay(300);   /// RESOLVER ESTE RETARDO SIN DELAY
     }
     return;
   }
@@ -216,7 +218,7 @@ void loop() {
       mostrarHora();
       if (confirmar) {
         estado = 1;
-        delay(200);
+        delay(200);/// RESOLVER ESTE RETARDO SIN DELAY
         mostrarMenuDia();
       }
       break;
