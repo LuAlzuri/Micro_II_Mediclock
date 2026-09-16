@@ -2,7 +2,20 @@
 * LiquidCrystal\_I2C by Martin Kubovcik, Frank de Brabander
 * Rtc by Makuna by Michael C. Miller
 
- */
+BASCAL
+* Crear función LCD_upd() que se encargue de actualizar el contenido dinámico en el Display
+* Crear función LCD_full() que se encargue de dibujar el LCD completo
+* Crear función Menu() que contenga todo el manejo del menú
+
+ALZURI
+* Despejar el loop()
+* Eliminar los delay
+
+FUENTES
+* Crear función LeerRTC() que lea el RTC cada 1 segundo
+* Crear función CtrlAlarma que se encargue de la gestión de la alarma
+
+*/
 // TAREAS:
 // ELIMINAR LOS DELAY DEL PROYECTO (10/9/26)
 // Despejar el bucle principal
