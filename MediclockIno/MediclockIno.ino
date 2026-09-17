@@ -26,6 +26,7 @@ FUENTES
 #include <RtcDS1302.h>
 #include <EEPROM.h>
 #include <Stepper.h>
+#include <string.h>
 
 // ----- Configuración del motor -----
 #define IN1 10
@@ -54,7 +55,7 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 // ----- Tamaño de la EEPROM emulada (ESP32) -----
 #define EEPROM_SIZE 512
 
-// Configuración de Hardware
+//Configuración de Hardware
 #define LCD_INIT          lcd.init()
 #define LCD_BACKLIGHT     lcd.backlight()
 #define INIT_SERIAL       Serial.begin(9600)
@@ -68,7 +69,7 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 #define CLR_LCD           lcd.clear()
 #define LCD_PRINT(X)      lcd.print(X)
 
-// Acciones y Lecturas
+//Acciones y Lecturas
 #define APAGAR_LED        digitalWrite(LED, LOW)
 #define ENCENDER_LED      digitalWrite(LED, HIGH)
 
@@ -95,51 +96,141 @@ void leerBotones() {
   subir = LEER_BTN_SUBIR;
 }
 
-void mostrarHora() {
-  RtcDateTime now = Rtc.GetDateTime();
-  lcd.setCursor(0, 0);
-  lcd.print(dias[now.DayOfWeek()]);
-  lcd.print(" ");
-  if (now.Hour() < 10) lcd.print("0");
-  lcd.print(now.Hour());
-  lcd.print(":");
-  if (now.Minute() < 10) lcd.print("0");
-  lcd.print(now.Minute());
+void LCD_upd() {
+  switch (estado) {
+    //Dibuja reloj completo
+    case 0: {
+      RtcDateTime now = Rtc.GetDateTime(); //obtiene fecha y hora actual del RTC
+      const char* nombreDia = dias[now.DayOfWeek()]; //obtiene el nombre del día actual desde el arreglo
+      lcd.setCursor(0, 0); //Primera fila
+      LCD_PRINT(nombreDia);
+      
+      //Padding para que el espacio donde va el nombre del día siempre tenga un pequeño margen
+      for (int i = strlen(nombreDia); i < 9; i++) LCD_PRINT(" ");
+      LCD_PRINT(" ");
+      
+      //Impresión de hora, si la hora es menor a 10 se escribe un 0 y luego el valor de la hora (ej: "07:" en lugar de solo "7:")
+      if (now.Hour() < 10) LCD_PRINT("0");
+      LCD_PRINT(now.Hour());
+      LCD_PRINT(":"); //dos puntos separadores entre hora y minutos.
+      
+      //Impresión de los minutos después del ":" de la hora, si el valor del minuto es menor a 10 se escribe un 0 en el primer dígito, mismo motivo que caso anterior
+      if (now.Minute() < 10) LCD_PRINT("0");
+      LCD_PRINT(now.Minute());
+      lcd.setCursor(0, 1); //Segunda fila
 
-  lcd.setCursor(0, 1);
-  if (now.Day() < 10) lcd.print("0");
-  lcd.print(now.Day());
-  lcd.print("/");
-  if (now.Month() < 10) lcd.print("0");
-  lcd.print(now.Month());
-  lcd.print("/");
-  lcd.print(now.Year());
+      //Impresión del día, misma lógica que el caso anterior
+      if (now.Day() < 10) LCD_PRINT("0"); 
+      LCD_PRINT(now.Day());
+      LCD_PRINT("/"); //Barra separadora de día y mes
+
+      //Impresión del mes, misma lógica que el caso anterior
+      if (now.Month() < 10) LCD_PRINT("0"); 
+      LCD_PRINT(now.Month());
+      LCD_PRINT("/"); //Barra separadora de mes y año
+      
+      //Impresión del año
+      LCD_PRINT(now.Year());
+      break;
+    }
+
+    //Sobreescritura del valor del día
+    case 1: {
+      const char* nombreDia = dias[diaSeleccionado];
+      //Escribe después de "día: "
+      lcd.setCursor(5, 0);
+      LCD_PRINT(nombreDia);
+      //Padding para que el espacio donde va el nombre del día siempre tenga un pequeño margen
+      for (int i = strlen(nombreDia); i < 9; i++) LCD_PRINT(" ");
+      break;
+    }
+
+    ////Sobreescritura del valor de la alarma
+    case 2:
+      //Escribe después de "alarma: "
+      lcd.setCursor(8, 0);
+      LCD_PRINT(alarmaSeleccionada + 1);
+      break;
+    
+    //Sobreescritura del valor de la hora
+    case 3:
+      //Escribe después de "hora: "
+      lcd.setCursor(6, 0);
+      if (horaSeleccionada < 10) LCD_PRINT("0"); //Impresión de hora, si la hora es menor a 10 se escribe un 0 y luego el valor de la hora (ej: "07:" en lugar de solo "7:")
+      LCD_PRINT(horaSeleccionada);
+      break;
+
+    //Sobreescritura del valor del minuto
+    case 4:
+      //Escribe después de "min: "
+      lcd.setCursor(5, 0);
+      if (minutoSeleccionado < 10) LCD_PRINT("0"); //Impresión de los minutos después del ":" de la hora, si el valor del minuto es menor a 10 se escribe un 0 en el primer dígito
+      LCD_PRINT(minutoSeleccionado);
+      break;
+  }
 }
 
-void mostrarMenuDia() {
-  lcd.clear();
-  lcd.print("Dia: ");
-  lcd.print(dias[diaSeleccionado]);
+//Define el marco inicial izquierdo que se muestra en el lcd y actualiza los valores a rellenar con LCD_UPD;
+void LCD_full() {
+  CLR_LCD; //Limpia pantalla
+  switch (estado) {
+    case 1: LCD_PRINT("Dia: ");    break;
+    case 2: LCD_PRINT("Alarma: "); break;
+    case 3: LCD_PRINT("Hora: ");   break;
+    case 4: LCD_PRINT("Min: ");    break;
+  }
+  LCD_upd(); //Actualiza con los valores correspondientes
 }
 
-void mostrarMenuAlarma() {
-  lcd.clear();
-  lcd.print("Alarma: ");
-  lcd.print(alarmaSeleccionada + 1);
-}
+void Menu() {
+  switch (estado) {
+    //Esperando que se presione el botón de confirmar para proceder
+    case 0:
+      LCD_upd();
+      if (confirmar) {
+        estado = 1;
+        delay(200);
+        LCD_full();
+      }
+      break;
 
-void mostrarMenuHora() {
-  lcd.clear();
-  lcd.print("Hora: ");
-  if (horaSeleccionada < 10) lcd.print("0");
-  lcd.print(horaSeleccionada);
-}
+    //Selección de Día
+    case 1:
+      if (subir) { diaSeleccionado = (diaSeleccionado + 1) % 7; delay(200); LCD_upd(); }
+      if (bajar) { diaSeleccionado = (diaSeleccionado == 0) ? 6 : diaSeleccionado - 1; delay(200); LCD_upd(); }
+      if (confirmar) { estado = 2; delay(200); LCD_full(); }
+      break;
 
-void mostrarMenuMinuto() {
-  lcd.clear();
-  lcd.print("Min: ");
-  if (minutoSeleccionado < 10) lcd.print("0");
-  lcd.print(minutoSeleccionado);
+    //Selección de Alarma
+    case 2:
+      if (subir) { alarmaSeleccionada = (alarmaSeleccionada + 1) % 3; delay(200); LCD_upd(); }
+      if (bajar) { alarmaSeleccionada = (alarmaSeleccionada == 0) ? 2 : alarmaSeleccionada - 1; delay(200); LCD_upd(); }
+      if (confirmar) { estado = 3; delay(200); LCD_full(); }
+      break;
+
+    //Selección de Hora
+    case 3:
+      if (subir) { horaSeleccionada = (horaSeleccionada + 1) % 24; delay(200); LCD_upd(); }
+      if (bajar) { horaSeleccionada = (horaSeleccionada == 0) ? 23 : horaSeleccionada - 1; delay(200); LCD_upd(); }
+      if (confirmar) { estado = 4; delay(200); LCD_full(); }
+      break;
+
+    //Selección de Minuto y Guardado de Alarma al ser la última operación
+    case 4:
+      if (subir) { minutoSeleccionado = (minutoSeleccionado + 1) % 60; delay(200); LCD_upd(); }
+      if (bajar) { minutoSeleccionado = (minutoSeleccionado == 0) ? 59 : minutoSeleccionado - 1; delay(200); LCD_upd(); }
+      if (confirmar) {
+        guardarAlarma(diaSeleccionado, alarmaSeleccionada, horaSeleccionada, minutoSeleccionado);
+        estado = 0; //Devuelve a la pantalla principal donde espera la presión del botón de confirmar para comenzar
+        CLR_LCD;
+        LCD_PRINT("Alarma ");
+        LCD_PRINT(alarmaSeleccionada + 1);
+        LCD_PRINT(" guardada");
+        delay(1000);
+        CLR_LCD;
+      }
+      break;
+  }
 }
 
 void activarAlarma() {
@@ -161,7 +252,6 @@ void detenerAlarma() {
   lcd.clear();
 }
 
-// ----- EEPROM: en ESP32 no existe update(), y hay que hacer commit() -----
 void guardarAlarma(int dia, int numAlarma, int hora, int minuto) {
   int addr = (dia * 6) + (numAlarma * 2);
 
@@ -171,7 +261,7 @@ void guardarAlarma(int dia, int numAlarma, int hora, int minuto) {
   if (EEPROM.read(addr + 1) != minuto) {
     EEPROM.write(addr + 1, minuto);
   }
-  EEPROM.commit(); // imprescindible en ESP32, si no se pierde al reiniciar
+  EEPROM.commit(); //Esto guarda el estado en la memoria persistente
 }
 
 void verificarAlarmas() {
@@ -191,7 +281,6 @@ void verificarAlarmas() {
   }
 }
 
-// ----- Setup -----
 void setup() {
   LCD_INIT;
   LCD_BACKLIGHT;
@@ -214,10 +303,8 @@ void setup() {
   CLR_LCD;
 }
 
-// ----- Loop -----
 void loop() {
   leerBotones();
-  RtcDateTime now = Rtc.GetDateTime();
 
   if (alarmaActiva) {
     if (confirmar) {
@@ -227,50 +314,7 @@ void loop() {
     return;
   }
 
-  switch (estado) {
-    case 0:
-      mostrarHora();
-      if (confirmar) {
-        estado = 1;
-        delay(200);/// RESOLVER ESTE RETARDO SIN DELAY
-        mostrarMenuDia();
-      }
-      break;
-
-    case 1:
-      if (subir) { diaSeleccionado = (diaSeleccionado + 1) % 7; delay(200); mostrarMenuDia(); }
-      if (bajar) { diaSeleccionado = (diaSeleccionado == 0 ? 6 : diaSeleccionado - 1); delay(200); mostrarMenuDia(); }
-      if (confirmar) { estado = 2; delay(200); mostrarMenuAlarma(); }
-      break;
-
-    case 2:
-      if (subir) { alarmaSeleccionada = (alarmaSeleccionada + 1) % 3; delay(200); mostrarMenuAlarma(); }
-      if (bajar) { alarmaSeleccionada = (alarmaSeleccionada == 0 ? 2 : alarmaSeleccionada - 1); delay(200); mostrarMenuAlarma(); }
-      if (confirmar) { estado = 3; delay(200); mostrarMenuHora(); }
-      break;
-
-    case 3:
-      if (subir) { horaSeleccionada = (horaSeleccionada + 1) % 24; delay(200); mostrarMenuHora(); }
-      if (bajar) { horaSeleccionada = (horaSeleccionada == 0 ? 23 : horaSeleccionada - 1); delay(200); mostrarMenuHora(); }
-      if (confirmar) { estado = 4; delay(200); mostrarMenuMinuto(); }
-      break;
-
-    case 4:
-      if (subir) { minutoSeleccionado = (minutoSeleccionado + 1) % 60; delay(200); mostrarMenuMinuto(); }
-      if (bajar) { minutoSeleccionado = (minutoSeleccionado == 0 ? 59 : minutoSeleccionado - 1); delay(200); mostrarMenuMinuto(); }
-      if (confirmar) {
-        guardarAlarma(diaSeleccionado, alarmaSeleccionada, horaSeleccionada, minutoSeleccionado);
-        estado = 0;
-        lcd.clear();
-        lcd.print("Alarma ");
-        lcd.print(alarmaSeleccionada + 1);
-        lcd.print(" guardada");
-        delay(1000);
-        lcd.clear();
-      }
-      break;
-  }
-
+  Menu();
   verificarAlarmas();
   delay(100);
 }
