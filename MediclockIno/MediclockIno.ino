@@ -93,13 +93,81 @@ bool alarmaActiva = false;
 RtcDateTime ahora(0);
 unsigned long ultLecturaRTC = 0;
 
-// ----- Funciones -----
-void leerBotones() {
-  bajar = LEER_BTN_BAJAR;
-  confirmar = LEER_BTN_CONFIRMAR;
-  subir = LEER_BTN_SUBIR;
+//Flancos de subida (deja registrado el estado anterior del botón)
+bool estadoAntBtnBajar= false; 
+bool estadoAntBtnSubir= false; 
+bool estadoAntBtnConfirmar= false; 
+
+// Bandera para mensajes
+bool mostrandoMensaje = false;
+unsigned long tiempoMensaje = 0; 
+unsigned long duracionMensaje = 0;
+
+void setup() {
+  LCD_INIT;
+  LCD_BACKLIGHT;
+  INIT_SERIAL;
+
+  CFG_BTN_BAJAR;
+  CFG_BTN_CONFIRMAR;
+  CFG_BTN_SUBIR;
+  CFG_LED;
+  CFG_BUZZER;
+
+  CFG_MOTOR;
+  CFG_RTC;
+
+  EEPROM.begin(EEPROM_SIZE); // requerido en ESP32 antes de leer/escribir
+
+  ahora = Rtc.GetDateTime();   // primera lectura, antes de que arranque el loop
+  ultLecturaRTC = millis();
+
+  CLR_LCD;
+  LCD_PRINT("Sistema iniciado");
+  IniciarMensaje(1000);
 }
 
+void loop() {
+  leerBotones();
+  LeerRTC();
+  ActualizarMensaje();
+  CtrlAlarma();
+  if (!alarmaActiva && !mostrandoMensaje) Menu();
+}
+
+
+// ----- Funciones -----
+void leerBotones() {
+  static unsigned long tiempoBtn=0;
+  bajar = subir = confirmar = false; 
+  if(!TiempoCumplido(tiempoBtn, 20)) return; //Antirebote
+  
+  bool leerBtnB = LEER_BTN_BAJAR;
+  bool leerBtnS = LEER_BTN_SUBIR;
+  bool leerBtnC = LEER_BTN_CONFIRMAR; 
+  
+  bajar = leerBtnB && !estadoAntBtnBajar; 
+  subir = leerBtnS && !estadoAntBtnSubir;
+  confirmar = leerBtnC && !estadoAntBtnConfirmar; 
+  
+  estadoAntBtnBajar = leerBtnB; 
+  estadoAntBtnSubir = leerBtnS; 
+  estadoAntBtnConfirmar = leerBtnC; 
+
+}
+
+void IniciarMensaje(unsigned long ms) {
+  mostrandoMensaje = true;
+  tiempoMensaje = millis();          
+  duracionMensaje = ms;
+}
+
+void ActualizarMensaje() {
+  if (mostrandoMensaje && TiempoCumplido(tiempoMensaje, duracionMensaje)) {
+    mostrandoMensaje = false;
+    CLR_LCD;
+  }
+}
 // Lee el RTC una vez por segundo y guarda el resultado en "ahora".
 // El resto del código usa "ahora" en vez de llamar a Rtc.GetDateTime() directamente.
 void LeerRTC() {
@@ -199,39 +267,35 @@ void Menu() {
   switch (estado) {
     //Esperando que se presione el botón de confirmar para proceder
     case 0:
-      LCD_upd();
-      if (confirmar) {
-        estado = 1;
-        delay(200);
-        LCD_full();
-      }
+      static unsigned long tiempoLCD = 0;
+     if (TiempoCumplido(tiempoLCD, 250)) LCD_upd();
+      if (confirmar) { estado = 1; LCD_full(); }
       break;
-
     //Selección de Día
     case 1:
-      if (subir) { diaSeleccionado = (diaSeleccionado + 1) % 7; delay(200); LCD_upd(); }
-      if (bajar) { diaSeleccionado = (diaSeleccionado == 0) ? 6 : diaSeleccionado - 1; delay(200); LCD_upd(); }
-      if (confirmar) { estado = 2; delay(200); LCD_full(); }
+      if (subir) { diaSeleccionado = (diaSeleccionado + 1) % 7; LCD_upd(); }
+      if (bajar) { diaSeleccionado = (diaSeleccionado == 0) ? 6 : diaSeleccionado - 1;  LCD_upd(); }
+      if (confirmar) { estado = 2; LCD_full(); }
       break;
 
     //Selección de Alarma
     case 2:
-      if (subir) { alarmaSeleccionada = (alarmaSeleccionada + 1) % 3; delay(200); LCD_upd(); }
-      if (bajar) { alarmaSeleccionada = (alarmaSeleccionada == 0) ? 2 : alarmaSeleccionada - 1; delay(200); LCD_upd(); }
-      if (confirmar) { estado = 3; delay(200); LCD_full(); }
+      if (subir) { alarmaSeleccionada = (alarmaSeleccionada + 1) % 3; LCD_upd(); }
+      if (bajar) { alarmaSeleccionada = (alarmaSeleccionada == 0) ? 2 : alarmaSeleccionada - 1;  LCD_upd(); }
+      if (confirmar) { estado = 3; LCD_full(); }
       break;
 
     //Selección de Hora
     case 3:
-      if (subir) { horaSeleccionada = (horaSeleccionada + 1) % 24; delay(200); LCD_upd(); }
-      if (bajar) { horaSeleccionada = (horaSeleccionada == 0) ? 23 : horaSeleccionada - 1; delay(200); LCD_upd(); }
-      if (confirmar) { estado = 4; delay(200); LCD_full(); }
+      if (subir) { horaSeleccionada = (horaSeleccionada + 1) % 24; LCD_upd(); }
+      if (bajar) { horaSeleccionada = (horaSeleccionada == 0) ? 23 : horaSeleccionada - 1; LCD_upd(); }
+      if (confirmar) { estado = 4; LCD_full(); }
       break;
 
     //Selección de Minuto y Guardado de Alarma al ser la última operación
     case 4:
-      if (subir) { minutoSeleccionado = (minutoSeleccionado + 1) % 60; delay(200); LCD_upd(); }
-      if (bajar) { minutoSeleccionado = (minutoSeleccionado == 0) ? 59 : minutoSeleccionado - 1; delay(200); LCD_upd(); }
+      if (subir) { minutoSeleccionado = (minutoSeleccionado + 1) % 60; LCD_upd(); }
+      if (bajar) { minutoSeleccionado = (minutoSeleccionado == 0) ? 59 : minutoSeleccionado - 1; LCD_upd(); }
       if (confirmar) {
         guardarAlarma(diaSeleccionado, alarmaSeleccionada, horaSeleccionada, minutoSeleccionado);
         estado = 0; //Devuelve a la pantalla principal donde espera la presión del botón de confirmar para comenzar
@@ -239,8 +303,7 @@ void Menu() {
         LCD_PRINT("Alarma ");
         LCD_PRINT(alarmaSeleccionada + 1);
         LCD_PRINT(" guardada");
-        delay(1000);
-        CLR_LCD;
+        IniciarMensaje(1000);
       }
       break;
   }
@@ -272,9 +335,8 @@ void CtrlAlarma() {
       alarmaActiva = false;
       lcd.clear();
       lcd.print("Dosis entregada");
-      delay(1000);
-      lcd.clear();
-    }
+      IniciarMensaje(1000);
+      }
     return;
   }
 
@@ -296,48 +358,17 @@ void CtrlAlarma() {
       ENCENDER_LED;
       tone(BUZZER, 1000);
       alarmaActiva = true;
+      mostrandoMensaje = false; 
     }
   }
 }
 
-void setup() {
-  LCD_INIT;
-  LCD_BACKLIGHT;
-  INIT_SERIAL;
+bool TiempoCumplido(unsigned long&ultimo, unsigned long periodo){
 
-  CFG_BTN_BAJAR;
-  CFG_BTN_CONFIRMAR;
-  CFG_BTN_SUBIR;
-  CFG_LED;
-  CFG_BUZZER;
-
-  CFG_MOTOR;
-  CFG_RTC;
-
-  EEPROM.begin(EEPROM_SIZE); // requerido en ESP32 antes de leer/escribir
-
-  ahora = Rtc.GetDateTime();   // primera lectura, antes de que arranque el loop
-  ultLecturaRTC = millis();
-
-  CLR_LCD;
-  LCD_PRINT("Sistema iniciado");
-  delay(1500);
-  CLR_LCD;
-}
-
-void loop() {
-  leerBotones();
-  LeerRTC();
-
-  if (alarmaActiva) {
-    if (confirmar) {
-      CtrlAlarma();
-      delay(300);   /// RESOLVER ESTE RETARDO SIN DELAY
-    }
-    return;
+  unsigned long tiempoTranscurrido= millis();
+  if(tiempoTranscurrido - ultimo >= periodo){
+    ultimo = tiempoTranscurrido; 
+    return true; 
   }
-
-  Menu();
-  CtrlAlarma();
-  delay(100);
+  return false; 
 }
