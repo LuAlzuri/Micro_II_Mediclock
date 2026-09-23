@@ -89,6 +89,10 @@ int minutoSeleccionado = 0;
 bool bajar = false, subir = false, confirmar = false;
 bool alarmaActiva = false;
 
+// ----- Cache del RTC, actualizado por LeerRTC() cada 1 segundo -----
+RtcDateTime ahora(0);
+unsigned long ultLecturaRTC = 0;
+
 // ----- Funciones -----
 void leerBotones() {
   bajar = LEER_BTN_BAJAR;
@@ -96,11 +100,20 @@ void leerBotones() {
   subir = LEER_BTN_SUBIR;
 }
 
+// Lee el RTC una vez por segundo y guarda el resultado en "ahora".
+// El resto del código usa "ahora" en vez de llamar a Rtc.GetDateTime() directamente.
+void LeerRTC() {
+  if (millis() - ultLecturaRTC >= 1000) {
+    ultLecturaRTC = millis();
+    ahora = Rtc.GetDateTime();
+  }
+}
+
 void LCD_upd() {
   switch (estado) {
     //Dibuja reloj completo
     case 0: {
-      RtcDateTime now = Rtc.GetDateTime(); //obtiene fecha y hora actual del RTC
+      RtcDateTime now = ahora; //usa la lectura cacheada por LeerRTC(), no llama al RTC directo
       const char* nombreDia = dias[now.DayOfWeek()]; //obtiene el nombre del día actual desde el arreglo
       lcd.setCursor(0, 0); //Primera fila
       LCD_PRINT(nombreDia);
@@ -233,25 +246,6 @@ void Menu() {
   }
 }
 
-void activarAlarma() {
-  lcd.clear();
-  lcd.print("!ALARMA!");
-  ENCENDER_LED;
-  tone(BUZZER, 1000);
-  alarmaActiva = true;
-}
-
-void detenerAlarma() {
-  noTone(BUZZER);
-  APAGAR_LED;
-  motor.step(273); // Gira al confirmar
-  alarmaActiva = false;
-  lcd.clear();
-  lcd.print("Dosis entregada");
-  delay(1000);
-  lcd.clear();
-}
-
 void guardarAlarma(int dia, int numAlarma, int hora, int minuto) {
   int addr = (dia * 6) + (numAlarma * 2);
 
@@ -264,19 +258,44 @@ void guardarAlarma(int dia, int numAlarma, int hora, int minuto) {
   EEPROM.commit(); //Esto guarda el estado en la memoria persistente
 }
 
-void verificarAlarmas() {
-  RtcDateTime now = Rtc.GetDateTime();
-  int d = now.DayOfWeek();
-  int h = now.Hour();
-  int m = now.Minute();
-  int s = now.Second();
+// Unifica lo que antes eran activarAlarma(), detenerAlarma() y verificarAlarmas()
+// en una sola función que se encarga de toda la gestión de la alarma.
+// Misma lógica y mismos delay() que el código original, solo reorganizado.
+void CtrlAlarma() {
+  // --- Caso: la alarma ya está sonando, esperando confirmación ---
+  if (alarmaActiva) {
+    if (confirmar) {
+      // Antes: detenerAlarma()
+      noTone(BUZZER);
+      APAGAR_LED;
+      motor.step(273); // Gira al confirmar
+      alarmaActiva = false;
+      lcd.clear();
+      lcd.print("Dosis entregada");
+      delay(1000);
+      lcd.clear();
+    }
+    return;
+  }
+
+  // --- Caso: no está sonando, se verifica si corresponde activarla ---
+  // Antes: verificarAlarmas(), usando ahora la lectura cacheada por LeerRTC()
+  int d = ahora.DayOfWeek();
+  int h = ahora.Hour();
+  int m = ahora.Minute();
+  int s = ahora.Second();
 
   for (int i = 0; i < 3; i++) {
     int addr = (d * 6) + (i * 2);
     int horaGuardada = EEPROM.read(addr);
     int minutoGuardado = EEPROM.read(addr + 1);
     if (horaGuardada == h && minutoGuardado == m && s == 0) {
-      activarAlarma();
+      // Antes: activarAlarma()
+      lcd.clear();
+      lcd.print("!ALARMA!");
+      ENCENDER_LED;
+      tone(BUZZER, 1000);
+      alarmaActiva = true;
     }
   }
 }
@@ -297,6 +316,9 @@ void setup() {
 
   EEPROM.begin(EEPROM_SIZE); // requerido en ESP32 antes de leer/escribir
 
+  ahora = Rtc.GetDateTime();   // primera lectura, antes de que arranque el loop
+  ultLecturaRTC = millis();
+
   CLR_LCD;
   LCD_PRINT("Sistema iniciado");
   delay(1500);
@@ -305,16 +327,17 @@ void setup() {
 
 void loop() {
   leerBotones();
+  LeerRTC();
 
   if (alarmaActiva) {
     if (confirmar) {
-      detenerAlarma();
+      CtrlAlarma();
       delay(300);   /// RESOLVER ESTE RETARDO SIN DELAY
     }
     return;
   }
 
   Menu();
-  verificarAlarmas();
+  CtrlAlarma();
   delay(100);
 }
