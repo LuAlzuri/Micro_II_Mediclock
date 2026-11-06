@@ -2,11 +2,15 @@
 // Bucle principal no bloqueante: cada tarea se atiende por turnos según millis().
 // Sin delay() en loop(). Sin menú por botones. Sin EEPROM (se usa NVS con Preferences).
 
+//Placa: ESP32 Dev Module
+//https://mediclockbackend.runasp.net/
+//Hosteado en Monster ASP
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <WebSocketsClient.h>
+#include <WebSocketsClient.h> //by Markus Sattler
 #include <Preferences.h>
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
