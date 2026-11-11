@@ -622,10 +622,10 @@ void actualizarBuzzerAlarma() {
   buzzerEncendido = !buzzerEncendido;
   if (buzzerEncendido) {
     encenderBuzzer();
-    digitalWrite(PIN_LED, HIGH);
+    encenderLED;
   } else {
     apagarBuzzer();
-    digitalWrite(PIN_LED, LOW);
+    apagarLED;
   }
 }
 
@@ -639,7 +639,7 @@ void iniciarCicloDosis(long pasosAvance) {
   buzzerEncendido = true;
   ultimoCambioBuzzerms = millis();
   encenderBuzzer();
-  digitalWrite(PIN_LED, HIGH);
+  encenderLED;
   ledTestHastaMs = millis() + 5000;
   if (pasosAvanceTotal <= 0) {
     // Sin movimiento (ej. Lunes alarma 1): entrega directa en el origen.
@@ -664,7 +664,7 @@ void finalizarDosis() {
   uint8_t hora = alarmaPendiente.hora;
   uint8_t minuto = alarmaPendiente.minuto;
   apagarBuzzer();
-  digitalWrite(PIN_LED, LOW);
+  apagarLED;
   buzzerEncendido = false;
   char linea[17];
   snprintf(linea, sizeof(linea), "%-16s", "Dosis entregada");
@@ -755,7 +755,7 @@ void mostrarEstadoSinAlarma() {
 // Con alarma: confirma la entrega (funciona sin WiFi). Sin alarma: solo
 // muestra el estado, sin mover el motor ni sonar.
 void atenderBotonPanico() {
-  int lectura = digitalRead(PIN_PANIC_BUTTON);
+  int lectura = leerBotonPanico;
   unsigned long ahora = millis();
   if (lectura != ultimaLecturaPanico) {
     ultimoRebotePanicoms = ahora;  // hubo ruido o un toque real: se espera
@@ -802,7 +802,7 @@ void actualizarActuadores() {
   }
   if (!alarmaPendiente.activa && estadoDispensador == DISP_EN_REPOSO && buzzerEncendido) {
     apagarBuzzer();  // seguridad: sin alarma nunca queda sonando
-    digitalWrite(PIN_LED, LOW);
+    apagarLED;
     buzzerEncendido = false;
   }
 }
@@ -849,7 +849,7 @@ void setup() {
   WiFi.setAutoReconnect(true);
 
   pinMode(LED_TEST, OUTPUT);
-  digitalWrite(LED_TEST, LOW);
+  apagarLedTest;
 
   // Inicialización directa SSL mediante WebSocketsClient
   webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH);
@@ -862,7 +862,7 @@ void setup() {
   pinMode(PIN_REED_SWITCH, INPUT_PULLUP);
   pinMode(PIN_PANIC_BUTTON, INPUT_PULLUP);
   pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
+  apagarLED;
 
   // Buzzer por LEDC (núcleo v3.x: canal automático por pin).
   ledcAttach(PIN_BUZZER, BUZZER_LEDC_FREQ_HZ, BUZZER_LEDC_RES_BITS);
@@ -929,10 +929,10 @@ void loop() {
     if (millis() - ultimoParpadeoLedMs >= 250) {
       ultimoParpadeoLedMs = millis();
       ledTestEncendido = !ledTestEncendido;
-      digitalWrite(LED_TEST, ledTestEncendido ? HIGH : LOW);
+      cambiarEstadoLedTest;
     }
   } else if (ledTestHastaMs != 0) {
-    digitalWrite(LED_TEST, LOW);
+    apagarLedTest;
     ledTestHastaMs = 0;
   }
   actualizarActuadores();
