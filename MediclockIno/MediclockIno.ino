@@ -35,9 +35,8 @@ unsigned long ultimaLecturaRTCms = 0;
 unsigned long ultimaSincNTPms = 0;    // última sincronización NTP exitosa
 unsigned long ultimoIntentoNTPms = 0;  // último intento NTP (exitoso o no)
 unsigned long ultimaConsultaMs = 0;
-unsigned long ledTestHastaMs = 0;
 bool ledTestEncendido = false;
-unsigned long ultimoParpadeoLedMs = 0;
+unsigned long ultimoCambioLedTestMs = 0;
 WebSocketsClient webSocket;
 long pasosAvanceTotal = 0;   // pasos a avanzar (y retroceder) en la dosis actual
 bool faseReversaDosis = false; // true = fase de retroceso
@@ -96,6 +95,23 @@ uint8_t diaMarcaDia = 0;
 // Núcleo ESP32 v3.x: ledcAttach() asigna el canal solo; ledcWrite() va por pin.
 void apagarBuzzer() {
   ledcWrite(PIN_BUZZER, 0);
+}
+
+// LedTest no bloqueante: destello de LED_TEST_DURACION_MS cada
+// LED_TEST_INTERVALO_MS. No usa delay(): se apoya en millis().
+void actualizarLedTest() {
+  unsigned long ahora = millis();
+  if (ledTestEncendido) {
+    if (ahora - ultimoCambioLedTestMs >= LED_TEST_DURACION_MS) {
+      ledTestEncendido = false;
+      cambiarEstadoLedTest;
+      ultimoCambioLedTestMs = ahora;
+    }
+  } else if (ahora - ultimoCambioLedTestMs >= LED_TEST_INTERVALO_MS) {
+    ledTestEncendido = true;
+    cambiarEstadoLedTest;
+    ultimoCambioLedTestMs = ahora;
+  }
 }
 
 // ------------------------------------------ T2: hora (RTC en memoria + NTP)
@@ -640,7 +656,6 @@ void iniciarCicloDosis(long pasosAvance) {
   ultimoCambioBuzzerms = millis();
   encenderBuzzer();
   encenderLED;
-  ledTestHastaMs = millis() + 5000;
   if (pasosAvanceTotal <= 0) {
     // Sin movimiento (ej. Lunes alarma 1): entrega directa en el origen.
     Serial.println(F("[mediclock] dispensa: sin movimiento, origen"));
@@ -925,15 +940,6 @@ void loop() {
     alarmaPendiente.minuto = horaValida ? tiempoCacheado.Minute() : 0;
     iniciarCicloDosis(STEPS_PER_HENDIDURA);
   }
-  if (millis() < ledTestHastaMs) {
-    if (millis() - ultimoParpadeoLedMs >= 250) {
-      ultimoParpadeoLedMs = millis();
-      ledTestEncendido = !ledTestEncendido;
-      cambiarEstadoLedTest;
-    }
-  } else if (ledTestHastaMs != 0) {
-    apagarLedTest;
-    ledTestHastaMs = 0;
-  }
+  actualizarLedTest();
   actualizarActuadores();
 }

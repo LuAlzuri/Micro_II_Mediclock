@@ -86,6 +86,8 @@
 #define WS_PATH   "/ws/dispositivo/1"   // mantener sincronizado con DISPOSITIVO_ID
 #define WS_RECONNECT_INTERVAL_MS 5000
 #define LED_TEST 2
+#define LED_TEST_INTERVALO_MS 3000UL
+#define LED_TEST_DURACION_MS  100UL
 #define apagarLedTest	digitalWrite(LED_TEST, LOW)
 #define cambiarEstadoLedTest digitalWrite(LED_TEST, ledTestEncendido ? HIGH : LOW)
 #define HTTP_TIMEOUT_MS         5000   // T4: tope de espera de GET/POST, sin bloquear
