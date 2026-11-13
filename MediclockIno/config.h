@@ -89,7 +89,7 @@
 #define LED_TEST_INTERVALO_MS 3000UL
 #define LED_TEST_DURACION_MS  100UL
 #define APAGAR_LED_TEST	digitalWrite(LED_TEST, LOW)
-#define CAMBIAR_ESTADO_LED_TEST digitalWrite(LED_TEST, ledTestEncendido ? HIGH : LOW)
+#define AJUSTAR_LED_TEST(estado) digitalWrite(LED_TEST, (estado) ? HIGH : LOW)
 #define HTTP_TIMEOUT_MS         5000   // T4: tope de espera de GET/POST, sin bloquear
 
 // --------------------------------------------------- T5: actuadores

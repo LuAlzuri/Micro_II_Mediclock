@@ -35,8 +35,6 @@ unsigned long ultimaLecturaRTCms = 0;
 unsigned long ultimaSincNTPms = 0;    // última sincronización NTP exitosa
 unsigned long ultimoIntentoNTPms = 0;  // último intento NTP (exitoso o no)
 unsigned long ultimaConsultaMs = 0;
-bool ledTestEncendido = false;
-unsigned long ultimoCambioLedTestMs = 0;
 WebSocketsClient webSocket;
 long pasosAvanceTotal = 0;   // pasos a avanzar (y retroceder) en la dosis actual
 bool faseReversaDosis = false; // true = fase de retroceso
@@ -97,21 +95,18 @@ void apagarBuzzer() {
   ledcWrite(PIN_BUZZER, 0);
 }
 
-// LedTest no bloqueante: destello de LED_TEST_DURACION_MS cada
-// LED_TEST_INTERVALO_MS. No usa delay(): se apoya en millis().
-void actualizarLedTest() {
-  unsigned long ahora = millis();
-  if (ledTestEncendido) {
-    if (ahora - ultimoCambioLedTestMs >= LED_TEST_DURACION_MS) {
-      ledTestEncendido = false;
-      CAMBIAR_ESTADO_LED_TEST;
-      ultimoCambioLedTestMs = ahora;
-    }
-  } else if (ahora - ultimoCambioLedTestMs >= LED_TEST_INTERVALO_MS) {
-    ledTestEncendido = true;
-    CAMBIAR_ESTADO_LED_TEST;
-    ultimoCambioLedTestMs = ahora;
-  }
+void LedTest() {
+  static unsigned long ultimo_cambio_ms = 0;
+  static bool led_encendido = false;
+  static unsigned int tiempo_destello_ms = LED_TEST_INTERVALO_MS;
+
+  if (millis() - ultimo_cambio_ms < tiempo_destello_ms) return;
+  ultimo_cambio_ms = millis();
+
+  led_encendido = !led_encendido;
+  AJUSTAR_LED_TEST(led_encendido);
+
+  tiempo_destello_ms = led_encendido ? LED_TEST_DURACION_MS : LED_TEST_INTERVALO_MS;
 }
 
 // ------------------------------------------ T2: hora (RTC en memoria + NTP)
@@ -940,6 +935,6 @@ void loop() {
     alarmaPendiente.minuto = horaValida ? tiempoCacheado.Minute() : 0;
     iniciarCicloDosis(STEPS_PER_HENDIDURA);
   }
-  actualizarLedTest();
+  LedTest();
   actualizarActuadores();
 }
