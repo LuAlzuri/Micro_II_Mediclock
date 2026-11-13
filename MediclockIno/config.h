@@ -45,14 +45,14 @@
 // así que lleva pull-up externo de 10 k a 3,3 V sí o sí.
 // Activo en LOW. Funciona sin WiFi, se atiende en T5.
 #define PIN_PANIC_BUTTON   35
-#define leerBotonPanico digitalRead(PIN_PANIC_BUTTON)
+#define LEER_BOTON_PANICO digitalRead(PIN_PANIC_BUTTON)
 
 
 
 // ---------------------------------------------------------------- Salidas
 #define PIN_LED            23   // LED de estado, activo en HIGH
-#define encenderLED digitalWrite(PIN_LED, HIGH)
-#define apagarLED digitalWrite(PIN_LED, LOW) 
+#define ENCENDER_LED digitalWrite(PIN_LED, HIGH)
+#define APAGAR_LED digitalWrite(PIN_LED, LOW) 
 #define PIN_BUZZER         26   // buzzer pasivo por PWM (LEDC)
 #define BUZZER_LEDC_CHANNEL 0  // sin uso en núcleo v3.x (canal automático)
 #define BUZZER_LEDC_FREQ_HZ 2000
@@ -88,8 +88,8 @@
 #define LED_TEST 2
 #define LED_TEST_INTERVALO_MS 3000UL
 #define LED_TEST_DURACION_MS  100UL
-#define apagarLedTest	digitalWrite(LED_TEST, LOW)
-#define cambiarEstadoLedTest digitalWrite(LED_TEST, ledTestEncendido ? HIGH : LOW)
+#define APAGAR_LED_TEST	digitalWrite(LED_TEST, LOW)
+#define CAMBIAR_ESTADO_LED_TEST digitalWrite(LED_TEST, ledTestEncendido ? HIGH : LOW)
 #define HTTP_TIMEOUT_MS         5000   // T4: tope de espera de GET/POST, sin bloquear
 
 // --------------------------------------------------- T5: actuadores

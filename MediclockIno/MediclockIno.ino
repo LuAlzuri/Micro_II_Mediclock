@@ -104,12 +104,12 @@ void actualizarLedTest() {
   if (ledTestEncendido) {
     if (ahora - ultimoCambioLedTestMs >= LED_TEST_DURACION_MS) {
       ledTestEncendido = false;
-      cambiarEstadoLedTest;
+      CAMBIAR_ESTADO_LED_TEST;
       ultimoCambioLedTestMs = ahora;
     }
   } else if (ahora - ultimoCambioLedTestMs >= LED_TEST_INTERVALO_MS) {
     ledTestEncendido = true;
-    cambiarEstadoLedTest;
+    CAMBIAR_ESTADO_LED_TEST;
     ultimoCambioLedTestMs = ahora;
   }
 }
@@ -638,10 +638,10 @@ void actualizarBuzzerAlarma() {
   buzzerEncendido = !buzzerEncendido;
   if (buzzerEncendido) {
     encenderBuzzer();
-    encenderLED;
+    ENCENDER_LED;
   } else {
     apagarBuzzer();
-    apagarLED;
+    APAGAR_LED;
   }
 }
 
@@ -655,7 +655,7 @@ void iniciarCicloDosis(long pasosAvance) {
   buzzerEncendido = true;
   ultimoCambioBuzzerms = millis();
   encenderBuzzer();
-  encenderLED;
+  ENCENDER_LED;
   if (pasosAvanceTotal <= 0) {
     // Sin movimiento (ej. Lunes alarma 1): entrega directa en el origen.
     Serial.println(F("[mediclock] dispensa: sin movimiento, origen"));
@@ -679,7 +679,7 @@ void finalizarDosis() {
   uint8_t hora = alarmaPendiente.hora;
   uint8_t minuto = alarmaPendiente.minuto;
   apagarBuzzer();
-  apagarLED;
+  APAGAR_LED;
   buzzerEncendido = false;
   char linea[17];
   snprintf(linea, sizeof(linea), "%-16s", "Dosis entregada");
@@ -770,7 +770,7 @@ void mostrarEstadoSinAlarma() {
 // Con alarma: confirma la entrega (funciona sin WiFi). Sin alarma: solo
 // muestra el estado, sin mover el motor ni sonar.
 void atenderBotonPanico() {
-  int lectura = leerBotonPanico;
+  int lectura = LEER_BOTON_PANICO;
   unsigned long ahora = millis();
   if (lectura != ultimaLecturaPanico) {
     ultimoRebotePanicoms = ahora;  // hubo ruido o un toque real: se espera
@@ -817,7 +817,7 @@ void actualizarActuadores() {
   }
   if (!alarmaPendiente.activa && estadoDispensador == DISP_EN_REPOSO && buzzerEncendido) {
     apagarBuzzer();  // seguridad: sin alarma nunca queda sonando
-    apagarLED;
+    APAGAR_LED;
     buzzerEncendido = false;
   }
 }
@@ -864,7 +864,7 @@ void setup() {
   WiFi.setAutoReconnect(true);
 
   pinMode(LED_TEST, OUTPUT);
-  apagarLedTest;
+  APAGAR_LED_TEST;
 
   // Inicialización directa SSL mediante WebSocketsClient
   webSocket.beginSSL(WS_HOST, WS_PORT, WS_PATH);
@@ -877,7 +877,7 @@ void setup() {
   pinMode(PIN_REED_SWITCH, INPUT_PULLUP);
   pinMode(PIN_PANIC_BUTTON, INPUT_PULLUP);
   pinMode(PIN_LED, OUTPUT);
-  apagarLED;
+  APAGAR_LED;
 
   // Buzzer por LEDC (núcleo v3.x: canal automático por pin).
   ledcAttach(PIN_BUZZER, BUZZER_LEDC_FREQ_HZ, BUZZER_LEDC_RES_BITS);
