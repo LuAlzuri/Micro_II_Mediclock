@@ -104,7 +104,7 @@ void LedTest() {
   ultimo_cambio_ms = millis();
 
   led_encendido = !led_encendido;
-  AJUSTAR_LED_TEST(led_encendido);
+  digitalWrite(LED_TEST, (estado) ? HIGH : LOW));
 
   tiempo_destello_ms = led_encendido ? LED_TEST_DURACION_MS : LED_TEST_INTERVALO_MS;
 }
